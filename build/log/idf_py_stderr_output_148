@@ -1,0 +1,15 @@
+CMake Error at C:/Users/Comp1/esp/52/esp-idf/tools/cmake/build.cmake:540 (message):
+  ERROR: The 'override_path' field in the manifest file
+  'common_components\protocol_examples_common\idf_component.yml' does not
+  point to a directory.  You can safely remove this field from the manifest
+  if this project is an example copied from a component repository.  The
+  dependency will be downloaded from the ESP component registry.
+  Documentation:
+  https://docs.espressif.com/projects/idf-component-manager/en/latest/reference/manifest_file.html#override-path
+
+
+Call Stack (most recent call first):
+  C:/Users/Comp1/esp/52/esp-idf/tools/cmake/project.cmake:547 (idf_build_process)
+  CMakeLists.txt:6 (project)
+
+

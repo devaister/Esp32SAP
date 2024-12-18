@@ -1,0 +1,18 @@
+CMake Error at C:/Users/Comp1/esp/52/esp-idf/tools/cmake/build.cmake:540 (message):
+  HINT: Component "espressif/usb_host_uvc" has suitable versions for other
+  targets: "esp32p4", "esp32s2", "esp32s3".  Is your current target "esp32"
+  set correctly?
+
+  WARNING: Cannot find versions of "espressif/usb_host_uvc" satisfying
+  "^1.0.3" for the current target "esp32".
+
+  HINT: Please check manifest file of the following component(s): main
+
+  ERROR: Because project depends on espressif/usb_host_uvc (^1.0.3) which
+  doesn't match any versions, version solving failed.
+
+Call Stack (most recent call first):
+  C:/Users/Comp1/esp/52/esp-idf/tools/cmake/project.cmake:547 (idf_build_process)
+  CMakeLists.txt:6 (project)
+
+

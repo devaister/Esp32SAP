@@ -1,0 +1,22 @@
+{
+    "C_Cpp.intelliSenseEngine": "default",
+    "idf.espIdfPathWin": "C:\\Users\\Comp1\\esp\\52\\esp-idf",
+    "idf.openOcdConfigs": [
+        "board/esp32-wrover-kit-3.3v.cfg"
+    ],
+    "idf.portWin": "COM5",
+    "idf.toolsPathWin": "C:\\Users\\Comp1\\.espressif",
+    "idf.flashType": "UART",
+    "editor.fontSize": 18,
+    "files.associations": {
+        "spi_flash_mmap.h": "c",
+        "esp_tls.h": "c",
+        "esp_event.h": "c",
+        "protocol_examples_common.h": "c",
+        "sys.h": "c",
+        "param.h": "c",
+        "esp_netif.h": "c"
+    },
+    "C_Cpp.dimInactiveRegions": false,
+    "C_Cpp.errorSquiggles": "enabled"
+}
