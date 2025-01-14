@@ -61,7 +61,10 @@ int led_state = 0;
 #define EXAMPLE_MAX_STA_CONN       CONFIG_ESP_MAX_STA_CONN
 #define EXAMPLE_ESP_MAXIMUM_RETRY 5
 
-#define HTTPD_401      "401 UNAUTHORIZED" 
+#define HTTPD_401      "401 UNAUTHORIZED" //new comment
+
+
+//testing
 
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
