@@ -1,7 +1,7 @@
 {
     "version":            "1",
     "project_name":       "project-name",
-    "project_version":    "1",
+    "project_version":    "c5bf320-dirty",
     "project_path":       "C:/Users/Comp1/project-name",
     "idf_path":           "C:/Users/Comp1/esp/52/esp-idf",
     "build_dir":          "C:/Users/Comp1/project-name/build",
