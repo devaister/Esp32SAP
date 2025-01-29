@@ -11,7 +11,7 @@
 #include "freertos/task.h"
 #include "esp_chip_info.h"
 #include "esp_flash.h"
-
+#include "esp_system.h"
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_tls.h"
@@ -43,13 +43,29 @@
 #include <lwip/netdb.h>
 #include "lwip/err.h"
 #include "lwip/sys.h"
+#include "sdkconfig.h"
 
+#include <esp_err.h>
+#include <esp_lcd_types.h>
+#include <esp_lcd_panel_io.h>
+#include <esp_lcd_panel_vendor.h>
+#include "driver/spi_master.h"
+#include "driver/gpio.h"
+#include "esp_lcd_panel_ops.h"
 
 #define LED GPIO_NUM_25 // led number
 
-char on_resp[] = "<!DOCTYPE html><html><head><style type=\"text/css\">html {  font-family: Arial;  display: inline-block;  margin: 0px auto;  text-align: center;}h1{  color: #070812;  padding: 2vh;}.button {  display: inline-block;  background-color: #b30000; //red color  border: none;  border-radius: 4px;  color: white;  padding: 16px 40px;  text-decoration: none;  font-size: 30px;  margin: 2px;  cursor: pointer;}.button2 {  background-color: #364cf4; //blue color}.content {   padding: 50px;}.card-grid {  max-width: 800px;  margin: 0 auto;  display: grid;  grid-gap: 2rem;  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));}.card {  background-color: white;  box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);}.card-title {  font-size: 1.2rem;  font-weight: bold;  color: #034078}</style>  <title>ESP32 WEB SERVER</title>  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">  <link rel=\"icon\" href=\"data:,\">  <link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.7.2/css/all.css\"    integrity=\"sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr\" crossorigin=\"anonymous\">  <link rel=\"stylesheet\" type=\"text/css\" ></head><body>  <h2>ESP32 WEB SERVER</h2>  <div class=\"content\">    <div class=\"card-grid\">      <div class=\"card\">        <p><i class=\"fas fa-lightbulb fa-2x\" style=\"color:#c81919;\"></i>     <strong>GPIO2</strong></p>        <p>GPIO state: <strong> ON</strong></p>        <p>          <a href=\"/led2on\"><button class=\"button\">ON</button></a>          <a href=\"/led2off\"><button class=\"button button2\">OFF</button></a>        </p>      </div>    </div>  </div></body></html>";
+#define EXAMPLE_LCD_PIXEL_CLOCK_HZ (20 * 1000 * 1000)
+#define EXAMPLE_LCD_CMD_BITS           8
+#define EXAMPLE_LCD_PARAM_BITS         8
 
-char off_resp[] = "<!DOCTYPE html><html><head><style type=\"text/css\">html {  font-family: Arial;  display: inline-block;  margin: 0px auto;  text-align: center;}h1{  color: #070812;  padding: 2vh;}.button {  display: inline-block;  background-color: #b30000; //red color  border: none;  border-radius: 4px;  color: white;  padding: 16px 40px;  text-decoration: none;  font-size: 30px;  margin: 2px;  cursor: pointer;}.button2 {  background-color: #364cf4; //blue color}.content {   padding: 50px;}.card-grid {  max-width: 800px;  margin: 0 auto;  display: grid;  grid-gap: 2rem;  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));}.card {  background-color: white;  box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);}.card-title {  font-size: 1.2rem;  font-weight: bold;  color: #034078}</style>  <title>ESP32 WEB SERVER</title>  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">  <link rel=\"icon\" href=\"data:,\">  <link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.7.2/css/all.css\"    integrity=\"sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr\" crossorigin=\"anonymous\">  <link rel=\"stylesheet\" type=\"text/css\"></head><body>  <h2>ESP32 WEB SERVER</h2>  <div class=\"content\">    <div class=\"card-grid\">      <div class=\"card\">        <p><i class=\"fas fa-lightbulb fa-2x\" style=\"color:#c81919;\"></i>     <strong>GPIO2</strong></p>        <p>GPIO state: <strong> OFF</strong></p>        <p>          <a href=\"/led2on\"><button class=\"button\">ON</button></a>          <a href=\"/led2off\"><button class=\"button button2\">OFF</button></a>        </p>      </div>    </div>  </div></body></html>";
+char on_resp[] = "<!DOCTYPE html><html><head><style type=\"text/css\">html {  font-family: Arial;  display: inline-block;  margin: 0px auto;  text-align: center;}h1{  color: #070812;  padding: 2vh;}.button {  display: inline-block;  background-color: #b30000; //red color  border: none;  border-radius: 4px;  color: white;  padding: 16px 40px;  text-decoration: none;  font-size: 30px;  margin: 2px;  cursor: pointer;}.button2 {  background-color: #364cf4; //blue color}.content {   padding: 50px;}.card-grid {  max-width: 800px;  margin: 0 auto;  display: grid;  grid-gap: 2rem;  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));}.card {  background-color: white;  box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);}.card-title {  font-size: 1.2rem;  font-weight: bold;  color: #034078}</style>  <title>ESP32 WEB SERVER</title>   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">  <link rel=\"icon\" href=\"data:,\">  <link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.7.2/css/all.css\"    integrity=\"sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr\" crossorigin=\"anonymous\">  <link rel=\"stylesheet\" type=\"text/css\" ></head><body>  <h2>ESP32 WEB SERVER</h2>  <div class=\"content\">    <div class=\"card-grid\">      <div class=\"card\">        <p><i class=\"fas fa-lightbulb fa-2x\" style=\"color:#c81919;\"></i>     <strong>GPIO2</strong></p>        <p>GPIO state: <strong> ON</strong></p>        <p>          <a href=\"/led2on\"><button class=\"button\">ON</button></a>          <a href=\"/led2off\"><button class=\"button button2\">OFF</button></a>        </p>      </div>    </div>  </div></body></html>";
+
+char off_resp[] = "<!DOCTYPE html><html><head><img src = %s ><style type=\"text/css\">html {  font-family: Arial;  display: inline-block;  margin: 0px auto;  text-align: center;}h1{  color: #070812;  padding: 2vh;}.button {  display: inline-block;  background-color: #b30000; //red color  border: none;  border-radius: 4px;  color: white;  padding: 16px 40px;  text-decoration: none;  font-size: 30px;  margin: 2px;  cursor: pointer;}.button2 {  background-color: #364cf4; //blue color}.content {   padding: 50px;}.card-grid {  max-width: 800px;  margin: 0 auto;  display: grid;  grid-gap: 2rem;  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));}.card {  background-color: white;  box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);}.card-title {  font-size: 1.2rem;  font-weight: bold;  color: #034078}</style>  <title>ESP32 WEB SERVER</title>  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">  <link rel=\"icon\" href=\"data:,\">  <link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.7.2/css/all.css\"    integrity=\"sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr\" crossorigin=\"anonymous\">  <link rel=\"stylesheet\" type=\"text/css\"></head><body>  <h2>ESP32 WEB SERVER</h2>  <div class=\"content\">    <div class=\"card-grid\">      <div class=\"card\">        <p><i class=\"fas fa-lightbulb fa-2x\" style=\"color:#c81919;\"></i>     <strong>GPIO2</strong></p>        <p>GPIO state: <strong> OFF</strong></p>        <p>          <a href=\"/led2on\"><button class=\"button\">ON</button></a>          <a href=\"/led2off\"><button class=\"button button2\">OFF</button></a>        </p>      </div>    </div>  </div></body></html>";
+
+char off_resp_2[] = "<!DOCTYPE html> <html lang=\"it\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\"> <title>Retro Futuristic UI</title> <em><!-- retro fonts in next step --></em> <style> :root { font-family: \"VT323\", monospace; font-weight: 400; --primary-color: #FF8900; --secondary-color: #ff5c00; --tertiary-color: #c72d04; --background-color: #111; scrollbar-color: var(--primary-color) var(--secondary-color); font-size: clamp(18px, 3vw, 30px); --fg-pb-amber: 224, 142, 34; } .fo-amber { --fo-fg: var(--fg-pb-amber); --fo-bg: var(--fg-pb-amber), 0.1; } * { margin: 0; padding: 0; box-sizing: border-box; } body { display: flex; justify-content: center; align-items: center; block-size: 100vh; background-color: var(--background-color); cursor: url('./assets/mouse.svg') 0 0, auto; } a { color: var(--primary-color); text-decoration: none; cursor: url(\"assets/mouse.svg\") 0 0, pointer; } title { color: var(--primary-color); text-decoration: none; } .retro-container { inline-size: 90vw; block-size: 90vh; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; padding: 0.5rem; border: 2px solid var(--primary-color); color: var(--primary-color); mask-image: linear-gradient(to bottom, #0005 50%, #000 50%); mask-size: 100% 2px; text-shadow: 0 0 0.5rem; } .colorterminal { background-color: rgba(var(--fo-bg)); } header, footer { display: flex; gap: 2rem; align-items: center; } main { overflow: hidden; } section { block-size: 100%; overflow: hidden auto; margin: 1rem 0; } @keyframes crtAnimation { 0% { background-position: 0 0; } 100% { background-position: 0 10000%; } } .retro-container { position: relative; box-shadow: inset 0px 0px 2rem; background-image: linear-gradient(0deg, #0000 10%, #fff1 90%, #0000 100%); animation: crtAnimation 100s linear infinite; background-size: 100% 80%; } .fo-glow { text-shadow: 0 0 .25rem rgb(var(--fo-fg)), 0 0 1rem rgb(var(--fo-fg)); } .tbl { width: 500px; border-spacing: 7px 1px; padding-top: 0px; border-top-width: 0px; margin-top: 0px; } .tbll { padding: 10px; border: 3px solid #9b6012; } .tblll { vertical-align: bottom; } </style> </head> <body> <div class=\"retro-container colorterminal fo-amber scanline-effect\"> <header> <h1></h1> <nav role=\"navigation\"> <ul> <li><a href=\"#screen-1\">\"Printer 1</a></li> </ul> </nav> </header> <main> <table class=\".tbl\" > <tbody> <tr> <td valign=\"top\" > <table > <tbody> <tr class=\"tblll\"> <td class=\"tbll\">Temperature</td> <td class=\"tbll\">260 C</td> </tr> <tr class=\"tblll\"> <td class=\"tbll\">Timer</td> <td class=\"tbll\">10:54:21</td> </tr> <tr class=\"tblll\"> <td class=\"tbll\">Power</td> <td class=\"tbll\">Enable</td> </tr> <tr class=\"tblll\"> <td class=\"tbll\">Printed time</td> <td class=\"tbll\">10:54:21</td> </tr> <tr class=\"tblll\"> <td class=\"tbll\">fghgfh</td> <td class=\"tbll\">fghgfh</td> </tr> <tr class=\"tblll\"> <td class=\"tbll\">fghgfh</td> <td class=\"tbll\">fghgfh</td> </tr> <tr class=\"tblll\"> <td class=\"tbll\">fghgfh</td> <td class=\"tbll\">fghgfh</td> </tr> </tbody> </table> </td> <td ><img src=\"qwe.png\"  height =\"280px\" alt=\"fghfghfghfghfgh\"></td> </tr> </tbody> </table> </main> <footer> <p></p> </footer> </div> <body/> </html>";
+
+
 
 static const char *TAG = "espressif"; // TAG for debug
 
@@ -76,9 +92,12 @@ int led_state = 0;
 
 esp_err_t send_web_page(httpd_req_t *req)
 {
+    
+   
+    
     int response;
     if (led_state == 0)
-        response = httpd_resp_send(req, off_resp, HTTPD_RESP_USE_STRLEN);
+        response = httpd_resp_send(req, off_resp_2, HTTPD_RESP_USE_STRLEN);
     else
         response = httpd_resp_send(req, on_resp, HTTPD_RESP_USE_STRLEN);
     return response;
@@ -123,6 +142,8 @@ httpd_uri_t uri_off = {
 
 static httpd_handle_t start_webserver(void)
 {
+
+
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 #if CONFIG_IDF_TARGET_LINUX
@@ -134,6 +155,7 @@ static httpd_handle_t start_webserver(void)
 #endif // !CONFIG_IDF_TARGET_LINUX
     config.lru_purge_enable = true;
 
+  
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
@@ -243,11 +265,63 @@ void wifi_init_softap(void)
             
 }
 
+void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
+{
+    int dc=(int)t->user;
+    gpio_set_level(CONFIG_PIN_NUM_DC, dc);
+}
 
 void app_main(void)
 {
     printf("Hello world!\n");
 
+  esp_err_t ret1;
+
+  spi_bus_config_t buscfg = {
+    .sclk_io_num = 14,
+    .mosi_io_num = 23,
+    .miso_io_num = 16,
+    .quadwp_io_num = -1,
+    .quadhd_io_num = -1,
+    .max_transfer_sz = 320 * 80 * sizeof(uint16_t), // transfer 80 lines of pixels (assume pixel is RGB565) at most in one SPI transaction
+};
+
+    ret1=spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO);
+     ESP_LOGI(TAG, "spi bus add device: %d", ret1);
+  
+    esp_lcd_panel_io_handle_t io_handle = NULL;
+    esp_lcd_panel_io_spi_config_t io_config = {
+    .dc_gpio_num = 2,
+    .cs_gpio_num = 15,
+    .pclk_hz = EXAMPLE_LCD_PIXEL_CLOCK_HZ,
+    .lcd_cmd_bits = EXAMPLE_LCD_CMD_BITS,
+    .lcd_param_bits = EXAMPLE_LCD_PARAM_BITS,
+    .spi_mode = 0,
+    .trans_queue_depth = 10,
+};
+// Attach the LCD to the SPI bus
+ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io_config, &io_handle));
+
+esp_lcd_panel_handle_t panel_handle = NULL;
+esp_lcd_panel_dev_config_t panel_config = {
+    .reset_gpio_num = 12,
+    .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+    .bits_per_pixel = 16,
+};
+// Create LCD panel handle for ST7789, with the SPI IO device handle
+ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle));
+
+ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+
+ ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+
+
+    //sprintf(off_resp,off_resp,base64_table);
+
+    //printf("%s",off_resp1);
+
+
+    
     gpio_reset_pin(LED);
     gpio_set_direction(LED,GPIO_MODE_DEF_OUTPUT);
 
@@ -279,5 +353,6 @@ server = start_webserver();
    // while (server) {
     //    sleep(5);
     //}
+
 
 }

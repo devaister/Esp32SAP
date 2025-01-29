@@ -15,7 +15,13 @@
         "protocol_examples_common.h": "c",
         "sys.h": "c",
         "param.h": "c",
-        "esp_netif.h": "c"
+        "esp_netif.h": "c",
+        "esp_check.h": "c",
+        "esp_flash.h": "c",
+        "esp_mac.h": "c",
+        "spi_ili9341.h": "c",
+        "spi_master.h": "c",
+        "gpio.h": "c"
     },
     "C_Cpp.dimInactiveRegions": false,
     "C_Cpp.errorSquiggles": "enabled"
